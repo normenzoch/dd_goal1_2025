@@ -67,7 +67,7 @@ module "projectcfg" {
         "roles/vpcaccess.admin"
       ]
       # Allows usage of this service account from a GitHub Action workflow in the following repositories
-      github_action_repositories = ["metro-digital-inner-source/customer-infra"]
+      github_action_repositories = ["normenzoch/dd_goal1_2025"]
     }
   }
 

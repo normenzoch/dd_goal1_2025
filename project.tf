@@ -9,52 +9,15 @@ module "projectcfg" {
   # The module automatically grants the same permissions to the Manager, Developer and
   # Observer groups as the panel does. There is no need to explicitly configure them.
   # All other bindings in the project's IAM policy can be configured here:
-   iam_policy = [
-     # Allow manager group to use this project
-     # as billing project for BigQuery jobs
-     {
-       role = "roles/compute.networkAdmin"
-       members = [local.iam_manager_group],
-     },
-     {
-       role = "roles/compute.securityAdmin"
-       members = [local.iam_manager_group],
-     },
-     {     
-       role = "roles/cloudprofiler.user"
-       members = [local.iam_manager_group],
-     },
-     {
-       role = "roles/monitoring.admin"
-       members = [local.iam_manager_group],
-     },
-     {
-       role = "roles/logging.admin"
-       members = [local.iam_manager_group],
-     },
-     {
-       role = "roles/compute.instanceAdmin.v1"
-       members = [local.iam_manager_group],
-     },
-     {
-       role = "roles/serviceusage.serviceUsageAdmin"
-       members = [local.iam_manager_group]
-     }
-
-
-  # project_iam_policy_roles = [
-  #      "roles/compute.networkAdmin",
-  #      "roles/compute.securityAdmin",
-  #      "roles/dns.admin",
-  #      "roles/iam.roleAdmin",
-  #      "roles/iam.securityAdmin",
-  #      "roles/iam.serviceAccountAdmin",
-  #      "roles/iam.workloadIdentityPoolAdmin",
-  #      "roles/serviceusage.serviceUsageAdmin",
-  #      "roles/storage.admin",
-  #      "roles/storage.objectAdmin",
-  #      "roles/vpcaccess.admin"
-   ]
+  # iam_policy = [
+  #   # Allow manager group to use this project
+  #   # as billing project for BigQuery jobs
+  #   {
+  #     role = "roles/bigquery.jobUser"
+  #     members = [
+  #       local.iam_manager_group,
+  #     ]
+  #   },
   #   # Same for developer group, but only during working days from 07:00 to 18:59
   #   {
   #     role = "roles/bigquery.jobUser"
@@ -104,10 +67,49 @@ module "projectcfg" {
         "roles/vpcaccess.admin"
       ]
       # Allows usage of this service account from a GitHub Action workflow in the following repositories
-      github_action_repositories = ["metro-digital-inner-source/customer-infra"]
+      github_action_repositories = ["normenzoch/dd_goal1_2025"]
     }
   }
-
+  iam_policy = [
+    # Allow manager group to use this project
+    # as billing project for BigQuery jobs
+    {
+      role    = "roles/compute.networkAdmin"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/compute.securityAdmin"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/cloudprofiler.user"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/monitoring.admin"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/logging.admin"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/iam.workloadIdentityPoolAdmin"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/run.admin"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/compute.instanceAdmin.v1"
+      members = [local.iam_manager_group],
+    },
+    {
+      role    = "roles/serviceusage.serviceUsageAdmin"
+      members = [local.iam_manager_group]
+    }
+  ]
   # List of VPC regions to configure. By default, no VPC is provisioned. If
   # the region is given like shown below, a default configuration is used. For
   # more information, see the Terraform documentation for the `vpc_regions`
