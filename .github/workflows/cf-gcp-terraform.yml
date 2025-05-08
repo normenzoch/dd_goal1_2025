@@ -1,0 +1,105 @@
+#
+# Cloud Foundation 
+# Google Cloud Platform Terraform pipeline
+# 
+# This workflow runs Terraform code for several stages.
+#
+# Important: Ensure you have configured workload identity federation for github access
+#
+# Setup:
+#   * Create and configure 'Workload identity federation' in your project.
+#     Please feel free to use Cloud Foundation terraform-google-cf-projectcfg module
+#     to create workload identity pool and provider for your GCP project in a convinient and simplified way
+#     https://registry.terraform.io/modules/metro-digital/cf-projectcfg/google/latest
+#     Check 'Inputs' table about service_accounts in a README.md file for details
+#
+# The workflow assumes you are having multiple environments with different service accounts.
+# Each stage has a dedicated service account and gcp project number.
+#
+# Amount of stages and names can be adjusted by modifying the jobs strategy matrix.
+#
+# Additionally the workflow will run Terraform plan for any push or pull request on any branch, but only
+# apply changes via Terraform apply on commits pushed to the master branch.
+# This can be adjusted by modifying the last step's conditions if needed.
+
+name: 'GCP deployment'
+
+on:
+  push:
+
+jobs:
+  terraform:
+    name: terraform
+    runs-on: ubuntu-latest
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is
+    # ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+        # The working-directory is only needed if you have your terraform code in different folders per environment.
+        # Comment or adjust it according to your folder structure.
+        working-directory: ${{ matrix.environment }}
+
+    strategy:
+      max-parallel: 1
+      matrix:
+        environment: [dev, pp, prod]
+        include:
+          - environment: dev
+            project_number: 123456789012 #your dev project number
+            service_account: your_dev_service_account@domain.com #change to your dev project SA being used to run terraform code
+          - environment: pp
+            project_number: 123456789012 #your pp project number
+            service_account: your_dev_service_account@domain.com #change to your pp project SA being used to run terraform code
+          - environment: prod
+            project_number: 123456789012 #your prod project number
+            service_account: your_dev_service_account@domain.com #change to your prod project SA being used to run terraform code
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Install the latest version of Terraform CLI and configure the Terraform CLI
+      # configuration file with a Terraform Cloud user API token
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      # In next step in case you're using CF terraform-google-cf-projectcfg module to configure workload identity federation change 123456789
+      # to your actual project's number. As for the service account - change it accordingly to a service account you use to run terraform code
+      # Note: if you use CF terraform-google-cf-projectcfg module and it's bootstrap script,
+      # your SA will look like 'terraform-iac-pipeline@{gcp_project_id}.iam.gserviceaccount.com'
+      - name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          workload_identity_provider: 'projects/${{ matrix.project_number }}/locations/global/workloadIdentityPools/github-actions/providers/github'
+          service_account: '${{ matrix.service_account }}'
+
+      # Fail pipeline if code is not formatted proper
+      - name: terraform fmt
+        id: fmt
+        run: terraform fmt -check
+
+      # Initialize a new or existing Terraform working directory by creating initial files
+      # loading any remote state, downloading modules, etc.
+      - name: terraform init
+        run: terraform init
+
+      # Checks that all Terraform configuration files adhere to a canonical format
+      - name: terraform validate
+        run: terraform validate
+
+      # Generates an execution plan for Terraform
+      - name: terraform plan
+        run: terraform plan -out=${{ github.sha }}.plan
+
+      # On push to master, build or change infrastructure according to Terraform configuration files
+      - name: terraform apply
+        if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
+        run: terraform apply -auto-approve "${{ github.sha }}.plan"
+ 

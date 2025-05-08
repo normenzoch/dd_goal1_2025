@@ -1,0 +1,55 @@
+---
+name: "Terraform plan & apply"
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    name: terraform
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: .internal
+
+    permissions:
+      contents: "read"
+      id-token: "write"
+
+    strategy:
+      max-parallel: 1
+      matrix:
+        environment: [prod]
+        include:
+          - environment: prod
+            project_number: 899769388052
+            service_account: terraform-iac-pipeline@cf-normen-normen-initia-ww.iam.gserviceaccount.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v2"
+        with:
+          workload_identity_provider: "projects/${{ matrix.project_number }}/locations/global/workloadIdentityPools/github-actions/providers/github"
+          service_account: ${{ matrix.service_account }}
+
+      - name: terraform init
+        run: terraform init
+
+      - name: terraform plan
+        run: terraform plan -out=${{ github.sha }}.plan
+
+      - name: Make cleanups
+        if: ${{ (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch' }}
+        run: ./cleanup.sh
+
+      - name: terraform apply
+        if: ${{ (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch' }}
+        run: terraform apply -auto-approve "${{ github.sha }}.plan"
