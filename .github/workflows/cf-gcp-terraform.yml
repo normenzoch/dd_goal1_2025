@@ -68,7 +68,7 @@ jobs:
       # Install the latest version of Terraform CLI and configure the Terraform CLI
       # configuration file with a Terraform Cloud user API token
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
 
       # In next step in case you're using CF terraform-google-cf-projectcfg module to configure workload identity federation change 123456789
       # to your actual project's number. As for the service account - change it accordingly to a service account you use to run terraform code
